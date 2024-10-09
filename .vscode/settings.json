@@ -1,0 +1,5 @@
+{
+  "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.compileUsingLocalVersion": "/Users/mac/PersonalProjects/Solidity/solidity-compilers/soljson-v0.8.26+commit.8a97fa7a.js"
+}
