@@ -46,8 +46,8 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     mapping(uint256 => mapping(address => bool)) internal enetered;
     mapping(uint256 => mapping(address => bool)) internal status;
 
-    mapping(address => uint256) public _totalDepositedUser;
-    mapping(address => uint256) public _totalWonUser;
+    mapping(address => uint256) public totalDepositedUser;
+    mapping(address => uint256) public totalWonUser;
 
     uint256 public totalEthDeposited;
     mapping(address => uint256) internal totalTokenDepsoited;
@@ -150,10 +150,12 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         if (address(bet.betToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             if (msg.value < bet.amount) revert InvalidAmount();
             totalEthDeposited += bet.amount;
+            totalDepositedUser[msg.sender] += bet.amount;
         } else {
             // _depositERC20Permit2(bet.betToken, bet.amount);
             bet.betToken.safeTransferFrom(msg.sender, address(this), bet.amount);
             totalTokenDepsoited[address(bet.betToken)] += bet.amount;
+            totalDepositedUser[msg.sender] += bet.amount;
         }
         deposited[_betId][msg.sender] = true;
         enetered[_betId][msg.sender] = true;
@@ -179,10 +181,10 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     ///@dev (pvp) claim winnings after bet timestamp has ended
     function claim(uint256 _betId) external nonReentrant {
         Bet storage _bet = bets[_betId];
+        if (_bet.betDisputed) revert Disputed();
         if (_bet.winner != msg.sender) revert NotBetWinner(msg.sender);
         if (block.timestamp < _bet.endTimeStamp) revert BetNotEnded(block.timestamp);
         if (_bet.betClaimed) revert BetClaimed();
-        if (_bet.betDisputed) revert Disputed();
         uint256 fee = uint256(_bet.amount * 2 * 200) / 10_000;
         uint256 _amountWon = _bet.amount * 2;
         if (address(_bet.betToken) == eth) {
@@ -191,10 +193,12 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
             //send the fee to the owner
             (success,) = address(owner()).call{value: fee}("");
             if (!success) revert TransferFailed();
+            totalWonUser[_bet.winner] += (_bet.amount * 2) - fee;
         } else {
             IERC20(_bet.betToken).safeTransfer(address(_bet.winner), (_bet.amount * 2) - fee);
             //send the fee to the owner
             IERC20(_bet.betToken).safeTransfer(address(owner()), fee);
+            totalWonUser[_bet.winner] += (_bet.amount * 2) - fee;
             emit Claimed(_betId, _amountWon, msg.sender);
         }
         _bet.betClaimed = true;
@@ -224,7 +228,7 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
             uint256 fee = uint256(_bet.amount * 2 * 200) / 10_000;
             uint256 _amountWon = (_bet.amount * 2) - fee;
             if (address(_bet.betToken) == eth) {
-                (bool success,) = address(_bet.winner).call{value: (_bet.amount * 2) - fee}("");
+                (bool success,) = address(_disputeParams.winner).call{value: (_bet.amount * 2) - fee}("");
                 if (!success) revert TransferFailed();
                 //send the fee to the owner
                 (success,) = address(owner()).call{value: fee}("");
@@ -232,9 +236,10 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
 
                 emit Claimed(_bet.betId, _amountWon, msg.sender);
             } else {
-                IERC20(_bet.betToken).safeTransfer(address(_bet.winner), (_bet.amount * 2) - fee);
+                IERC20(_bet.betToken).safeTransfer(address(_disputeParams.winner), (_bet.amount * 2) - fee);
                 //send the fee to the owner
                 IERC20(_bet.betToken).safeTransfer(address(owner()), fee);
+                totalWonUser[_bet.winner] += (_bet.amount * 2) - fee;
                 emit Claimed(_bet.betId, _amountWon, msg.sender);
             }
         }

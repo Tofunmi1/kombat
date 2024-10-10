@@ -11,7 +11,7 @@ contract DeployUSDT is Script {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         usdt = new USDT();
-        vm.stopPrank();
+        vm.stopBroadcast();
     }
 }
 
