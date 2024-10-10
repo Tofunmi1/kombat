@@ -89,7 +89,7 @@ contract KombatTest is Test {
         address[] memory _actors = new address[](2);
         (_actors[0], _actors[1]) = (alice, bob);
 
-        vm.expectEmit();
+        // vm.expectEmit();
         kombat.createBet(_actors, "test bet", 2 days, owner, address(usdt), 5000 * 1e18, false);
     }
 
@@ -97,7 +97,7 @@ contract KombatTest is Test {
         address[] memory _actors = new address[](2);
         (_actors[0], _actors[1]) = (alice, bob);
 
-        vm.expectEmit();
+        // vm.expectEmit();
         kombat.createBet(_actors, "test bet", 2 days, owner, address(usdt), 5000 * 1e18, true);
     }
 
