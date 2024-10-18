@@ -20,6 +20,7 @@ struct Bet {
     address winner;
     bool betDisputed;
     bool betClaimed;
+    bool rejected;
 }
 
 struct DisputeParams {
@@ -35,16 +36,16 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
     IPermit2 constant permit2 = IPermit2(address(0xdeadbeef123456789)); //permit2 base sepolia
-    mapping(uint256 => Bet) internal bets;
+    mapping(uint256 => Bet) public bets;
     mapping(address => bool) internal isRegisteredToken;
     uint256 internal betId = 1; //increment betId
     address internal eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     ///mapping for storing is cheaper than storing it in Bet struct
-    mapping(uint256 => mapping(address => bool)) internal isActor;
-    mapping(uint256 => mapping(address => bool)) internal deposited;
-    mapping(uint256 => mapping(address => bool)) internal enetered;
-    mapping(uint256 => mapping(address => bool)) internal status;
+    mapping(uint256 => mapping(address => bool)) public isActor;
+    mapping(uint256 => mapping(address => bool)) public deposited;
+    mapping(uint256 => mapping(address => bool)) public entered;
+    mapping(uint256 => mapping(address => bool)) public status;
 
     mapping(address => uint256) public totalDepositedUser;
     mapping(address => uint256) public totalWonUser;
@@ -70,6 +71,7 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     error CantDispute(uint256);
     error WinningStatusUpdated();
     error NoTokenTransfer(uint256);
+    error BetNotRejectedYet();
 
     event RegisterToken(address token, bool register);
     event BetCreated(
@@ -90,13 +92,19 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     event DisputeResolved(uint256 _betId, bool rewardSlashed);
     event EthRecoverd(uint256 _amount);
     event TokenRecovered(address token, uint256 amount);
+    event BetRefunded(uint256 _betId);
 
     function registerToken(address token, bool register) external onlyOwner {
         if (register) isRegisteredToken[token] = true;
         emit RegisterToken(token, register);
     }
 
-    ///bet id , etc
+    /**
+     * @param _actors , array of actors participating in the bet
+     * @param _betName , short name for the bet
+     * @param _betDuration , duration for the
+     * @param _betToken , address of the registered token for bet collateral
+     */
     function createBet(
         address[] memory _actors,
         string memory _betName,
@@ -105,11 +113,11 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         address _betToken,
         uint256 _amount,
         bool useNativeEth
-    ) external returns (uint256 _betId) {
+    ) external payable nonReentrant returns (uint256 _betId) {
         if (!isRegisteredToken[_betToken]) revert NotRegistered();
         if (_actors.length > 2) revert InValidArrayLength();
         Bet storage betRef = bets[betId];
-        /// todo optimze sstores
+        ///optimize sstores
         betRef.actors = _actors;
         betRef.startTimeStamp = block.timestamp;
         betRef.endTimeStamp = block.timestamp + _betDuration;
@@ -121,7 +129,10 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
             betRef.betToken = IERC20(address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE));
         } else {
             betRef.betToken = IERC20(_betToken);
+            IERC20(_betToken).safeTransferFrom(msg.sender, address(this), _amount);
+            totalDepositedUser[msg.sender] += _amount;
         }
+        entered[betId][msg.sender] = true;
         ///@dev save directly individually instead of using a loop
         ///this make sense since kombat is single pvp for now
         isActor[betId][_actors[0]] = true;
@@ -142,29 +153,58 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         );
     }
 
-    function enterBet(uint256 _betId) external payable {
+    /**
+     * @dev get the details smart contract
+     */
+    function getBetDetails(uint256 _betId) external view returns (Bet memory _bet) {
+        _bet = bets[_betId];
+    }
+
+    /**
+     * @dev enter a bet for registered users of a bet
+     */
+    function enterBet(uint256 _betId, bool enter) external payable nonReentrant {
         Bet storage bet = bets[_betId];
         if (!isActor[_betId][msg.sender]) revert Auth(msg.sender);
-        if (bet.startTimeStamp == 0) revert BetNotCreated();
-        if (enetered[_betId][msg.sender] == true) revert AlreadyEntered();
-        if (address(bet.betToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            if (msg.value < bet.amount) revert InvalidAmount();
-            totalEthDeposited += bet.amount;
-            totalDepositedUser[msg.sender] += bet.amount;
+        if (enter) {
+            if (bet.startTimeStamp == 0) revert BetNotCreated();
+            if (entered[_betId][msg.sender] == true) revert AlreadyEntered();
+            if (address(bet.betToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+                if (msg.value < bet.amount) revert InvalidAmount();
+                totalEthDeposited += bet.amount;
+                totalDepositedUser[msg.sender] += bet.amount;
+            } else {
+                // _depositERC20Permit2(bet.betToken, bet.amount);
+                bet.betToken.safeTransferFrom(msg.sender, address(this), bet.amount);
+                totalTokenDepsoited[address(bet.betToken)] += bet.amount;
+                totalDepositedUser[msg.sender] += bet.amount;
+            }
+            deposited[_betId][msg.sender] = true;
+            entered[_betId][msg.sender] = true;
         } else {
-            // _depositERC20Permit2(bet.betToken, bet.amount);
-            bet.betToken.safeTransferFrom(msg.sender, address(this), bet.amount);
-            totalTokenDepsoited[address(bet.betToken)] += bet.amount;
-            totalDepositedUser[msg.sender] += bet.amount;
+            bet.rejected = false;
         }
-        deposited[_betId][msg.sender] = true;
-        enetered[_betId][msg.sender] = true;
 
         emit EnterBet(msg.sender, _betId, bet.amount);
     }
 
-    ///@dev (pvp) enter winnings after bet timestamp has ended
-    function enterWin(uint256 _betId, bool _win) external {
+    function refundUnacceptedBet(uint256 _betId) external nonReentrant {
+        Bet storage _bet = bets[_betId];
+        if (msg.sender != _bet.betCreator) revert Auth(msg.sender);
+        if (_bet.betClaimed) revert BetClaimed();
+        if (!_bet.rejected) revert BetNotRejectedYet();
+        entered[_betId][_bet.actors[0]] = true;
+        entered[_betId][_bet.actors[1]] = true;
+        _bet.betToken.safeTransfer(_bet.betCreator, _bet.amount);
+        _bet.betClaimed = true;
+
+        emit BetRefunded(_betId);
+    }
+
+    /**
+     * @dev (pvp) enter winnings after bet timestamp has ended
+     */
+    function enterWin(uint256 _betId, bool _win) external nonReentrant {
         Bet storage _bet = bets[_betId];
         if (block.timestamp < _bet.endTimeStamp) revert BetNotEnded(block.timestamp);
         if (!isActor[_betId][msg.sender]) revert Auth(msg.sender);
@@ -178,7 +218,9 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         emit EnterWin(_betId, _win, msg.sender);
     }
 
-    ///@dev (pvp) claim winnings after bet timestamp has ended
+    /**
+     * @dev (pvp) claim winnings after bet timestamp has ended
+     */
     function claim(uint256 _betId) external nonReentrant {
         Bet storage _bet = bets[_betId];
         if (_bet.betDisputed) revert Disputed();
@@ -206,11 +248,12 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         emit Claimed(_betId, _amountWon, msg.sender);
     }
 
+    ///@dev opening a dispute directly
     function openDispute(uint256 _betId) external {
         Bet storage _bet = bets[_betId];
         if (!isActor[_betId][msg.sender]) revert Auth(msg.sender);
         address[] memory actors = _bet.actors;
-        if (!enetered[_betId][actors[0]] || !enetered[betId][actors[1]]) revert CantDispute(_betId);
+        if (!entered[_betId][actors[0]] || !entered[betId][actors[1]]) revert CantDispute(_betId);
         if (_bet.betClaimed == false) revert BetClaimed();
         _bet.betDisputed = true;
 

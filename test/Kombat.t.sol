@@ -44,12 +44,12 @@ contract KombatTest is Test {
 
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         ///both parties claiming they won would open dispute automatically
@@ -107,7 +107,7 @@ contract KombatTest is Test {
         uint256 id = kombat.createBet(_actors, "test bet", 2 days, owner, address(usdt), 5000 * 1e18, false);
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         assertEq(usdt.balanceOf(address(kombat)), 5000 * 1e18);
@@ -118,7 +118,7 @@ contract KombatTest is Test {
         (_actors[0], _actors[1]) = (alice, bob);
         uint256 id = kombat.createBet(_actors, "test bet", 2 days, owner, address(usdt), 5 * 1e18, true);
         vm.startPrank(alice);
-        kombat.enterBet{value: 5 * 1e18}(id);
+        kombat.enterBet{value: 5 * 1e18}(id, true);
         vm.stopPrank();
 
         assertEq(address(kombat).balance, 5 * 1e18);
@@ -132,12 +132,12 @@ contract KombatTest is Test {
 
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         skip(2 days);
@@ -161,12 +161,12 @@ contract KombatTest is Test {
 
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         skip(2 days);
@@ -190,12 +190,12 @@ contract KombatTest is Test {
 
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         ///both parties claiming they won would open dispute automatically
@@ -220,12 +220,12 @@ contract KombatTest is Test {
 
         vm.startPrank(alice);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdt.approve(address(kombat), type(uint128).max);
-        kombat.enterBet(id);
+        kombat.enterBet(id, true);
         vm.stopPrank();
 
         ///both parties claiming they won would open dispute automatically
