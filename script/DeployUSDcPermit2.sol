@@ -17,7 +17,7 @@ contract DeployUSDcPermit2 is Script {
     }
 }
 
-contract MintUSDT is Script {
+contract MintUSDc is Script {
     USDC internal usdc;
 
     function run() external {
