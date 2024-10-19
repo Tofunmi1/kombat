@@ -13,7 +13,9 @@ install with
 curl -L https://foundry.paradigm.xyz | bash
 ```
 
-run this command to mint test usdc for interacting with Kombat
+### Mint test USDC for interacting with Kombat
+
+Run this command to mint test usdc for interacting with Kombat
 
 ```bash
 forge script script/DeployUSDcPermit2.sol:MintUSDT --private-key $PRIVATE_KEY --broadcast --rpc-url $BASE_SEPOLIA_URL --slow -vvvvv
