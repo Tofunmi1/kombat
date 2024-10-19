@@ -24,7 +24,7 @@ contract MintUSDT is Script {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         usdc = USDC(0xaf6264B2cc418d17F1067ac8aC8687aae979D5e5);
-        usdc.mintTo(address(0x25EB6D618f0b90c883F9E724ed6f3B01354aC459), 87777 * 1e18);
+        usdc.mintTo(address(0xb13c76987B43674d3905eF1c1EdEBcA5CC18A6b4), 899 * 1e18);
         vm.stopBroadcast();
     }
 }

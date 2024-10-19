@@ -162,16 +162,11 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
         if (enter) {
             if (bet.startTimeStamp == 0) revert BetNotCreated();
             if (entered[_betId][msg.sender] == true) revert AlreadyEntered();
-            if (address(bet.betToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-                if (msg.value < bet.amount) revert InvalidAmount();
-                totalEthDeposited += bet.amount;
-                totalDepositedUser[msg.sender] += bet.amount;
-            } else {
-                // _depositERC20Permit2(bet.betToken, bet.amount);
-                bet.betToken.safeTransferFrom(msg.sender, address(this), bet.amount);
-                totalTokenDepsoited[address(bet.betToken)] += bet.amount;
-                totalDepositedUser[msg.sender] += bet.amount;
-            }
+
+            // _depositERC20Permit2(bet.betToken, bet.amount);
+            IERC20(address(bet.betToken)).safeTransferFrom(msg.sender, address(this), bet.amount);
+            totalTokenDepsoited[address(bet.betToken)] += bet.amount;
+            totalDepositedUser[msg.sender] += bet.amount;
             deposited[_betId][msg.sender] = true;
             entered[_betId][msg.sender] = true;
         } else {
