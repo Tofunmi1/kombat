@@ -154,13 +154,6 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev get the details smart contract
-     */
-    function getBetDetails(uint256 _betId) external view returns (Bet memory _bet) {
-        _bet = bets[_betId];
-    }
-
-    /**
      * @dev enter a bet for registered users of a bet
      */
     function enterBet(uint256 _betId, bool enter) external payable nonReentrant {
@@ -356,5 +349,12 @@ contract Kombat is KombatStorage, ReentrancyGuard, Ownable {
 
     receive() external payable {
         if (msg.value > 0) revert NoTokenTransfer(msg.value);
+    }
+
+    /**
+     * @dev get the bet details
+     */
+    function getBetDetails(uint256 _betId) external view returns (Bet memory _bet) {
+        _bet = bets[_betId];
     }
 }
