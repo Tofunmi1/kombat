@@ -4,3 +4,23 @@
 
 - usdc : 0xaf6264B2cc418d17F1067ac8aC8687aae979D5e5
 - kombat : 0x4432fCE60bbC8dB0a34F722c7e5F89FB7F74a944
+
+## Built with foundry
+
+run this command to mint test usdc for interacting with Kombat
+
+```bash
+forge script script/DeployUSDcPermit2.sol:MintUSDT --private-key $PRIVATE_KEY --broadcast --rpc-url $BASE_SEPOLIA_URL --slow -vvvvv
+```
+
+## Test
+
+```
+forge test --mt `<test_name>` -vvvv --decode-internal
+```
+
+and run all tests with
+
+```
+forge test -vvvv
+```
