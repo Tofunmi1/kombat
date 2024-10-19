@@ -2,8 +2,9 @@
 
 ### Base sepolia
 
-- `usdc : 0xaf6264B2cc418d17F1067ac8aC8687aae979D5e5`
+
 - `kombat : 0x6b89252fe6490AE1F61d59b7D07C93E45749eb62`
+- `usdc base sepolia : 0xaf6264B2cc418d17F1067ac8aC8687aae979D5e5`
 
 ## Built with foundry
 
